@@ -6,3 +6,4 @@ INSERT INTO Student (id,name) VALUES
                                   ('DEP-10/S-001','John doe'),
                                   ('DEP-10/S-002', 'Captain Jack'),
                                   ('DEP-10/S-003', 'Armstrong')
+

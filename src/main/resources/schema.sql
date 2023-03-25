@@ -22,4 +22,3 @@ CREATE TABLE IF NOT EXISTS Attendance(
     stamp DATETIME NOT NULL ,
     CONSTRAINT fk_student_attendance FOREIGN KEY (student_id) REFERENCES Student(id)
 );
-

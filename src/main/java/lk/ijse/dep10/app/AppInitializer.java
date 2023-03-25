@@ -1,6 +1,8 @@
 package lk.ijse.dep10.app;
 
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 import lk.ijse.dep10.app.db.DBConnection;
 
@@ -33,8 +35,14 @@ public class AppInitializer extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws IOException {
         generateSchemaIfNotExists();
+        primaryStage.setScene(new Scene(new FXMLLoader(getClass().getResource("/view/MainView.fxml")).load()));
+        primaryStage.setTitle("Manage Students");
+        primaryStage.setMaximized(true);
+        primaryStage.show();
+        primaryStage.centerOnScreen();
+        primaryStage.sizeToScene();
     }
 
     private void generateSchemaIfNotExists() {
@@ -50,6 +58,7 @@ public class AppInitializer extends Application {
             }
 
             boolean tableExists = tableNameList.containsAll(Set.of("Attendance", "Picture", "Student", "User"));
+            System.out.println(tableExists);
 
             if (!tableExists) {
                 stm.execute(readDBScript());
@@ -67,8 +76,9 @@ public class AppInitializer extends Application {
             String line;
             StringBuilder dbScriptBuilder = new StringBuilder();
             while ((line = bf.readLine()) != null ) {
-                dbScriptBuilder.append(line);
+                dbScriptBuilder.append(line).append("\n");
             }
+            System.out.println(dbScriptBuilder);
             return dbScriptBuilder.toString();
 
         } catch (IOException e) {
