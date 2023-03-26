@@ -257,6 +257,8 @@ public class MainViewController {
 
                     stmPicture.executeUpdate();
                     System.out.println("updated the student's picture");
+                }else{
+                    deleteImage(txtId.getText(), connection);
                 }
                 Student selectedStudent = tblStudents.getSelectionModel().getSelectedItem();
                 selectedStudent.setName(newStudent.getName());
@@ -275,6 +277,17 @@ public class MainViewController {
             }
             throw new RuntimeException(e);
         }
+    }
+
+    private void deleteImage(String id,Connection connection){
+        try {
+            Statement statement = connection.createStatement();
+            String sql = "DELETE FROM Picture WHERE student_id=%s";
+            statement.executeUpdate(String.format(sql,id));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private Blob getSelectedImageAsBlob() {
