@@ -44,11 +44,13 @@ public class Student {
 
     public Circle getImage() {
         Circle circle = new Circle(50);
-        circle.setFill(new ImagePattern(image));
+        if(image ==null) circle.setFill(new ImagePattern(MainViewController.emptyImage));
+        else circle.setFill(new ImagePattern(image));
         return circle;
     }
 
     public ImagePattern getImagePattern() {
+        if(image == null) return null;
         return new ImagePattern(image);
     }
 

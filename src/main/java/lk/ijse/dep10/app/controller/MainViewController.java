@@ -18,15 +18,10 @@ import lk.ijse.dep10.app.db.DBConnection;
 import lk.ijse.dep10.app.model.Student;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
 import javax.sql.rowset.serial.SerialBlob;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.sql.*;
 
@@ -62,12 +57,14 @@ public class MainViewController {
     @FXML
     private TextField txtSearch;
 
-    private Image emptyImage = new javafx.scene.image.Image("/image/empty-pp.png");
+    public static Image emptyImage = new javafx.scene.image.Image("/image/empty-pp.png");
     private Image selectedImage = null;
     private Student selectedStudent = null;
+
     public Image getEmptyImage() {
         return emptyImage;
     }
+
 
     public void initialize() {
         circleImage.setFill(new ImagePattern(emptyImage));
@@ -78,9 +75,9 @@ public class MainViewController {
         loadStudents();
 
         btnDelete.setDisable(true);
-        tblStudents.getSelectionModel().selectedItemProperty().addListener((ov,pre,current)->{
+        tblStudents.getSelectionModel().selectedItemProperty().addListener((ov, pre, current) -> {
             btnDelete.setDisable(false);
-            if(current == null){
+            if (current == null) {
                 btnDelete.setDisable(true);
                 selectedStudent = null;
                 selectedImage = null;
@@ -94,7 +91,7 @@ public class MainViewController {
             selectedImage = selectedStudent.getStoredImage();
             txtId.setText(current.getId());
             txtName.setText(current.getName());
-            circleImage.setFill(current.getImagePattern()==null? new ImagePattern(emptyImage):current.getImagePattern());
+            circleImage.setFill(current.getImagePattern() == null ? new ImagePattern(emptyImage) : current.getImagePattern());
             System.out.print("Selected Student:");
             System.out.println(selectedStudent);
             System.out.print("Selected image:");
@@ -116,14 +113,14 @@ public class MainViewController {
                 String name = rst.getString("name");
 
 
-                Student student = new Student(id,name,null);
+                Student student = new Student(id, name, null);
 
-                stmPicture.setString(1,id);
+                stmPicture.setString(1, id);
                 ResultSet rstPicture = stmPicture.executeQuery();
 
-                if (rstPicture.next()){
+                if (rstPicture.next()) {
                     student.setImage(new Image(rstPicture.getBlob("picture").getBinaryStream()));
-                }else{
+                } else {
                     student.setImage(emptyImage);
                 }
                 tblStudents.getItems().add(student);
@@ -139,9 +136,9 @@ public class MainViewController {
     void btnBrowseOnAction(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files",
-                "*.jpg","*.jpeg","*.png","*.gif"));
+                "*.jpg", "*.jpeg", "*.png", "*.gif"));
         File file = fileChooser.showOpenDialog(btnBrowse.getScene().getWindow());
-        if(file==null) return;
+        if (file == null) return;
         try {
             Image image = new Image(file.toURI().toURL().toString());
             circleImage.setFill(new ImagePattern(selectedImage = image));
@@ -164,13 +161,19 @@ public class MainViewController {
         String id = selectedStudent.getId();
         Connection connection = DBConnection.getInstance().getConnection();
         try {
+            connection.setAutoCommit(false);
             Statement stm = connection.createStatement();
-            if (selectedStudent.getStoredImage()== emptyImage) {
-                stm.executeUpdate(String.format("DELETE FROM Picture WHERE student_id=%s", id));
+            ResultSet resultSet = stm.executeQuery(String.format("SELECT * FROM Picture WHERE student_id='%S'", txtId.getText()));
+
+            if (resultSet.next()) {
+                stm.executeUpdate(String.format("DELETE FROM Picture WHERE student_id='%s'", txtId.getText()));
             }
-            stm.executeUpdate(String.format("DELETE from Student WHERE id=%d",id));
+
+            stm.executeUpdate(String.format("DELETE FROM Student WHERE id='%S'", txtId.getText()));
+            connection.commit();
+            connection.setAutoCommit(true);
             tblStudents.getItems().remove(selectedStudent);
-            btnNewStudent.fire();
+            tblStudents.refresh();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -189,16 +192,16 @@ public class MainViewController {
 
     private String generateId() {
         ObservableList<Student> studentsInTheTable = tblStudents.getItems();
-        if(studentsInTheTable.size() == 0) return "DEP-10/S-001";
+        if (studentsInTheTable.size() == 0) return "DEP-10/S-001";
         Student lastStudent = studentsInTheTable.get(studentsInTheTable.size() - 1);
         String lastStudentId = lastStudent.getId();
-        String numberString = lastStudentId.substring(9,12);
-        return "DEP-10/S-" + String.format("%03d",Integer.parseInt(numberString)+1);
+        String numberString = lastStudentId.substring(9, 12);
+        return "DEP-10/S-" + String.format("%03d", Integer.parseInt(numberString) + 1);
     }
 
     @FXML
     void btnSaveOnAction(ActionEvent event) {
-        if(!isDataValid()) return;
+        if (!isDataValid()) return;
 
         Connection connection = DBConnection.getInstance().getConnection();
         PreparedStatement stmStudent;
@@ -214,14 +217,14 @@ public class MainViewController {
             if (selectedStudent == null) {
                 // add a record to Student table
                 stmStudent = connection.prepareStatement("INSERT INTO Student (id,name) VALUES (?,?)");
-                stmStudent.setString(1,txtId.getText());
-                stmStudent.setString(2,txtName.getText());
-                stmStudent.executeQuery();
+                stmStudent.setString(1, txtId.getText());
+                stmStudent.setString(2, txtName.getText());
+                stmStudent.executeUpdate();
                 System.out.println("Added a new record to Student");
                 // add a record to Picture table
                 if (selectedImageBlob != null) {
                     stmPicture = connection.prepareStatement("INSERT INTO Picture(student_id, picture) VALUES (?,?)");
-                    stmPicture.setString(1,txtId.getText());
+                    stmPicture.setString(1, txtId.getText());
 
 
                     stmPicture.setBlob(2, selectedImageBlob);
@@ -231,8 +234,8 @@ public class MainViewController {
                 tblStudents.getItems().add(newStudent);
             } else {
                 // update the Student table
-                stmStudent =connection.prepareStatement("UPDATE Student SET name=? WHERE id=?");
-                stmStudent.setString(1,txtName.getText());
+                stmStudent = connection.prepareStatement("UPDATE Student SET name=? WHERE id=?");
+                stmStudent.setString(1, txtName.getText());
                 stmStudent.setString(2, txtId.getText());
                 stmStudent.executeUpdate();
                 System.out.println("updated the student name");
@@ -243,21 +246,25 @@ public class MainViewController {
                     ResultSet rstPictures = stm.executeQuery(String.format("SELECT * FROM Picture WHERE student_id='%s'", txtId.getText()));
 
                     if (rstPictures.next()) {
-                        stmPicture = connection.prepareStatement("UPDATE Picture SET picture=? WHERE student_id=?");
-                        stmPicture.setBlob(1, selectedImageBlob);
-                        stmPicture.setString(2, txtId.getText());
+                        if (selectedImage != null) {
+                            stmPicture = connection.prepareStatement("UPDATE Picture SET picture=? WHERE student_id=?");
+                            stmPicture.setBlob(1, selectedImageBlob);
+                            stmPicture.setString(2, txtId.getText());
+                            stmPicture.executeUpdate();
+                        }else{
+                            deleteImage(txtId.getText(), connection);
+                        }
                     } else {
                         if (selectedImage != null) {
-
+                            stmPicture = connection.prepareStatement("INSERT INTO Picture(STUDENT_ID, PICTURE) VALUES (?,?)");
+                            stmPicture.setBlob(2, selectedImageBlob);
+                            stmPicture.setString(1, txtId.getText());
+                            stmPicture.executeUpdate();
                         }
-                        stmPicture = connection.prepareStatement("INSERT INTO Picture(STUDENT_ID, PICTURE) VALUES (?,?)");
-                        stmPicture.setBlob(2, selectedImageBlob);
-                        stmPicture.setString(1, txtId.getText());
                     }
 
-                    stmPicture.executeUpdate();
                     System.out.println("updated the student's picture");
-                }else{
+                } else {
                     deleteImage(txtId.getText(), connection);
                 }
                 Student selectedStudent = tblStudents.getSelectionModel().getSelectedItem();
@@ -267,35 +274,25 @@ public class MainViewController {
             connection.commit();
             connection.setAutoCommit(true);
             tblStudents.refresh();
+            btnNewStudent.fire();
 
         } catch (Throwable e) {
-            try {
-                connection.rollback();
-                connection.setAutoCommit(true);
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
             throw new RuntimeException(e);
         }
     }
 
-    private void deleteImage(String id,Connection connection){
-        try {
-            Statement statement = connection.createStatement();
-            String sql = "DELETE FROM Picture WHERE student_id=%s";
-            statement.executeUpdate(String.format(sql,id));
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
+    private void deleteImage(String id, Connection connection) throws SQLException {
+        Statement statement = connection.createStatement();
+        String sql = "DELETE FROM Picture WHERE student_id='%s'";
+        statement.executeUpdate(String.format(sql, id));
     }
 
     private Blob getSelectedImageAsBlob() {
         try {
-            if(selectedImage==null) return null;
+            if (selectedImage == null) return null;
             BufferedImage bufferedImage = SwingFXUtils.fromFXImage(selectedImage, null);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(bufferedImage,"png", baos);
+            ImageIO.write(bufferedImage, "png", baos);
             byte[] bytes = baos.toByteArray();
             return new SerialBlob(bytes);
         } catch (Exception e) {
